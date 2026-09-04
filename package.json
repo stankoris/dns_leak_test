@@ -1,0 +1,19 @@
+{
+  "name": "dns-leak-test",
+  "version": "1.0.0",
+  "description": "Self-hosted DNS leak test aplikacija (Node.js/Express + custom DNS server)",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "dns2": "^2.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
