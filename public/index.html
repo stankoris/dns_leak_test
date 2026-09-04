@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,62 +10,74 @@
   <div class="container">
     <header>
       <h1>DNS Leak Test</h1>
+
       <p class="subtitle">
-        Proveri da li tvoja VPN ili proxy konekcija "curi" DNS upite ka tvom
-        pravom internet provajderu.
+        Check whether your VPN or proxy connection is leaking DNS queries
+        to your real internet service provider.
       </p>
     </header>
 
     <main>
       <div class="card" id="start-card">
-        <button id="start-btn" class="btn-primary">Pokreni test</button>
-        <p class="hint">Test traje oko 5-10 sekundi.</p>
+        <button id="start-btn" class="btn-primary">Start Test</button>
+        <p class="hint">The test takes approximately 5–10 seconds.</p>
       </div>
 
       <div class="card hidden" id="progress-card">
         <div class="spinner"></div>
-        <p id="progress-text">Šaljem DNS upite...</p>
+        <p id="progress-text">Sending DNS queries...</p>
       </div>
 
       <div class="card hidden" id="results-card">
-        <h2>Rezultati</h2>
+        <h2>Results</h2>
+
         <div id="verdict" class="verdict"></div>
 
         <table id="results-table">
           <thead>
             <tr>
-              <th>IP adresa DNS servera</th>
-              <th>ISP / Organizacija</th>
-              <th>Lokacija</th>
-              <th>Broj upita</th>
+              <th>DNS Server IP</th>
+              <th>ISP / Organization</th>
+              <th>Location</th>
+              <th>Queries</th>
             </tr>
           </thead>
+
           <tbody id="results-body"></tbody>
         </table>
 
-        <button id="retry-btn" class="btn-secondary">Testiraj ponovo</button>
+        <button id="retry-btn" class="btn-secondary">
+          Run Test Again
+        </button>
       </div>
 
       <section class="explainer">
-        <h3>Kako ovo radi?</h3>
+        <h3>How does it work?</h3>
+
         <p>
-          Kad koristiš VPN, sav tvoj saobraćaj bi trebalo da ide kroz
-          enkriptovani tunel - uključujući i DNS upite (koji pretvaraju
-          "google.com" u IP adresu). Ako je konfiguracija loša, DNS upiti
-          mogu da "procure" direktno ka tvom ISP-u, mimo VPN tunela, čak i
-          dok ostatak saobraćaja izgleda bezbedno.
+          When you use a VPN, your network traffic should travel through
+          the encrypted VPN tunnel, including DNS queries used to translate
+          domain names such as "google.com" into IP addresses.
         </p>
+
         <p>
-          Ovaj test generiše niz jedinstvenih, nasumičnih poddomena i prati
-          koji DNS serveri odgovaraju na te upite. Ako među njima vidiš ime
-          svog kućnog internet provajdera umesto VPN provajdera, tvoj DNS
-          cura.
+          If your VPN or system is configured incorrectly, DNS queries may
+          bypass the VPN tunnel and be sent directly to your internet
+          service provider. This can reveal information about your browsing
+          activity even while the rest of your traffic appears protected.
+        </p>
+
+        <p>
+          This test generates unique random subdomains and records which DNS
+          resolvers query the authoritative DNS server. If the detected DNS
+          provider belongs to your ISP instead of your VPN or chosen DNS
+          provider, your connection may be leaking DNS queries.
         </p>
       </section>
     </main>
 
     <footer>
-      <p>Self-hosted DNS leak test</p>
+      <p>Self-hosted DNS Leak Test</p>
     </footer>
   </div>
 

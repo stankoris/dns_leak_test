@@ -49,18 +49,18 @@ async function runTest() {
   startCard.classList.add('hidden');
   resultsCard.classList.add('hidden');
   progressCard.classList.remove('hidden');
-  progressText.textContent = 'Pokrecem test...';
+  progressText.textContent = 'Starting test...';
 
   // 1. Zatrazi novu test sesiju od backend-a
   const startRes = await fetch('/api/test/start', { method: 'POST' });
   if (!startRes.ok) {
-    progressText.textContent = 'Greska pri pokretanju testa. Pokusaj ponovo.';
+    progressText.textContent = 'Failed to start the test. Please try again.';
     return;
   }
   const { testId, dnsTestDomain, probeCount } = await startRes.json();
 
   // 2. Generisi N nasumicnih poddomena i posalji "probe" zahteve
-  progressText.textContent = `Saljem ${probeCount} DNS upita...`;
+  progressText.textContent = `Sending ${probeCount} DNS queries...`;
   const probes = [];
   for (let i = 0; i < probeCount; i++) {
     const hostname = `${randomHex(8)}.${testId}.${dnsTestDomain}`;
@@ -69,13 +69,13 @@ async function runTest() {
   await Promise.all(probes);
 
   // 3. Malo sacekaj da spori resolveri stignu do naseg DNS servera
-  progressText.textContent = 'Prikupljam rezultate...';
+  progressText.textContent = 'Collecting results...';
   await new Promise((r) => setTimeout(r, 2000));
 
   // 4. Preuzmi rezultate
   const resultsRes = await fetch(`/api/test/${testId}/results`);
   if (!resultsRes.ok) {
-    progressText.textContent = 'Nije bilo moguce preuzeti rezultate.';
+    progressText.textContent = 'Unable to retrieve the test results.';
     return;
   }
   const data = await resultsRes.json();
@@ -91,7 +91,7 @@ function renderResults(data) {
   if (!data.resolvers || data.resolvers.length === 0) {
     verdictEl.className = 'verdict leak';
     verdictEl.textContent =
-      'Nijedan DNS upit nije stigao do servera. Ovo moze znaciti da tvoj DNS ide preko sifrovanog kanala (DoH/DoT) koji ovaj test ne moze direktno da uhvati, ili da NS delegacija nije ispravno podesena.';
+      'No DNS queries reached the test server. This may mean that your DNS traffic is using an encrypted channel such as DoH or DoT that this test cannot directly detect, or that the DNS test infrastructure is not configured correctly.';
     return;
   }
 
@@ -99,18 +99,18 @@ function renderResults(data) {
 
   if (distinctOrgs.size > 1) {
     verdictEl.className = 'verdict leak';
-    verdictEl.textContent = `Detektovano ${distinctOrgs.size} razlicita DNS provajdera. Ako se bilo koji od njih ne poklapa sa tvojim VPN provajderom, tvoj DNS curi.`;
+    verdictEl.textContent = `Detected ${distinctOrgs.size} different DNS providers. If any of them do not match your VPN or intended DNS provider, your connection may be leaking DNS queries.`;
   } else {
     verdictEl.className = 'verdict safe';
     verdictEl.textContent =
-      'Svi DNS upiti dolaze od jednog provajdera. Proveri da li se ime organizacije ispod poklapa sa tvojim VPN provajderom.';
+      'All DNS queries were handled by a single provider. Check whether the organization shown below matches your VPN or intended DNS provider.';
   }
 
   data.resolvers.forEach((r) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${r.ip}</td>
-      <td>${r.isp || 'Nepoznato'}${r.org && r.org !== r.isp ? ` (${r.org})` : ''}</td>
+      <td>${r.isp || 'Unknown'}${r.org && r.org !== r.isp ? ` (${r.org})` : ''}</td>
       <td>${r.city ? `${r.city}, ${r.country}` : r.country || '-'}</td>
       <td>${r.hitCount}</td>
     `;
