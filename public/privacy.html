@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Obaveštenje o privatnosti — DNS Leak Test</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container legal">
+    <h1>Obaveštenje o privatnosti</h1>
+    <p class="hint">
+      NACRT DOKUMENTA. Ovo NIJE pravni savet niti potvrda usklađenosti sa
+      GDPR ili bilo kojim drugim propisom. Pre produkcijske upotrebe, ovaj
+      dokument MORA da pregleda i dopuni pravni tim / DPO organizacije koja
+      servis stvarno pokreće, i da popuni sva polja u zagradama.
+    </p>
+
+    <h2>Ko je kontrolor podataka</h2>
+    <p>
+      [PUNI PRAVNI NAZIV KONTROLORA]<br />
+      [REGISTROVANA ADRESA]<br />
+      Kontakt: [KONTAKT EMAIL]<br />
+      DPO kontakt (ako je primenjivo): [DPO KONTAKT]
+    </p>
+
+    <h2>Koji podaci se obrađuju tokom testa</h2>
+    <ul>
+      <li>IP adresa DNS resolvera koji odgovori na test upit</li>
+      <li>Nasumični test identifikator (bez licnog znacenja)</li>
+      <li>DNS upit povezan sa tim identifikatorom</li>
+      <li>Vremenske oznake i broj upita</li>
+      <li>Izvedeni ASN, naziv organizacije i približna lokacija (kada je uključeno lokalno geo obogaćivanje)</li>
+    </ul>
+    <p>
+      HTTP infrastruktura (nginx) na ovom serveru takođe može tehnički da
+      beleži IP adresu posetioca u svojim access logovima, nezavisno od
+      trajanja same test sesije. [OPISATI STVARNU NGINX LOG KONFIGURACIJU
+      I RETENCIJU KOJU JE ORGANIZACIJA IZABRALA.]
+    </p>
+
+    <h2>Svrha obrade</h2>
+    <ul>
+      <li>Izvršenje DNS leak dijagnostičkog testa koji je korisnik zatražio</li>
+      <li>Sprečavanje zloupotrebe i osnovna bezbednosna zaštita servisa (rate limiting)</li>
+      <li>Rad i održavanje servisa</li>
+    </ul>
+    <p>Nema marketinških niti analitičkih svrha.</p>
+
+    <h2>Pravni osnov</h2>
+    <p>
+      [PRAVNI OSNOV MORA DA POTVRDI PRAVNA/DPO FUNKCIJA ORGANIZACIJE KOJA
+      SERVIS POKREĆE - npr. legitimni interes za pružanje zatraženog
+      dijagnostičkog servisa, izvršenje ugovora, ili saglasnost - u
+      zavisnosti od konteksta upotrebe. Programer aplikacije namerno NE
+      bira ovaj pravni osnov unapred.]
+    </p>
+
+    <h2>Retencija podataka</h2>
+    <p>
+      Podaci test sesije (uključujući IP adrese resolvera) čuvaju se
+      isključivo u memoriji servera i automatski se brišu najkasnije
+      [SESSION_TTL_SECONDS] sekundi (podrazumevano 180 sekundi) nakon
+      kreiranja sesije. Podaci se NE upisuju u bazu podataka niti trajno
+      čuvaju.
+    </p>
+    <p>
+      Ovo NE pokriva nezavisne logove infrastrukture (npr. nginx access
+      log) koji mogu imati drugačiju, duže trajuću retenciju - vidi gornju
+      napomenu.
+    </p>
+
+    <h2>Lokalno geo/ISP obogaćivanje (DB-IP Lite)</h2>
+    <p>
+      Približna lokacija i naziv ISP/ASN organizacije za otkrivene IP
+      adrese resolvera izračunavaju se LOKALNO, korišćenjem DB-IP Lite baza
+      podataka smeštenih na ovom serveru. Otkrivene IP adrese resolvera se
+      NE šalju DB-IP servisu niti bilo kom drugom trećem servisu tokom
+      izvršenja pojedinačnog testa. DB-IP baze podataka preuzimaju se i
+      ažuriraju periodično, nezavisno od pojedinačnih korisničkih testova.
+    </p>
+
+    <h2>Primaoci / obrađivači</h2>
+    <p>
+      [NAVESTI STVARNE INFRASTRUKTURNE PROVAJDERE AKO POSTOJE, npr:]
+    </p>
+    <ul>
+      <li>[HOSTING PROVAJDER]</li>
+      <li>[CDN / REVERSE PROXY, AKO SE KORISTI]</li>
+      <li>[MONITORING PROVAJDER, AKO SE KORISTI]</li>
+    </ul>
+    <p>DB-IP se NE navodi kao primalac podataka o korisničkim testovima, jer se lookup obavlja lokalno.</p>
+
+    <h2>Prava lica na koje se podaci odnose</h2>
+    <p>
+      U zavisnosti od primenjivog prava, možeš imati pravo na pristup,
+      ispravku, brisanje, ograničenje obrade, prigovor i prenosivost
+      podataka. Imajući u vidu da su podaci test sesije izrazito
+      kratkotrajni i pseudonimizovani, servis možda neće moći da identifikuje
+      konkretnu osobu nakon isteka test sesije. [DOPUNITI KONKRETNIM
+      PROCEDURAMA ZA OSTVARIVANJE PRAVA I KONTAKTOM NADZORNOG ORGANA.]
+    </p>
+
+    <h2>Nadzorni organ</h2>
+    <p>[NAZIV I KONTAKT NADLEŽNOG NADZORNOG ORGANA]</p>
+
+    <h2>Kolačići</h2>
+    <p>
+      Ova aplikacija trenutno ne koristi reklamne ni analitičke kolačiće,
+      tragače (tracking pixels) niti nepotreban localStorage. Ako se to
+      promeni, ovaj dokument i pripadajući consent mehanizam moraju biti
+      posebno ažurirani.
+    </p>
+
+    <p class="hint">Poslednje ažurirano: [DATUM] · Verzija dokumenta: [VERZIJA]</p>
+  </div>
+</body>
+</html>

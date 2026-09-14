@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uslovi korišćenja — DNS Leak Test</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container legal">
+    <h1>Uslovi korišćenja</h1>
+    <p class="hint">
+      NACRT DOKUMENTA - zahteva pregled pravnog tima pre produkcijske
+      upotrebe. Odeljci označeni sa [PRAVNI PREGLED POTREBAN] moraju biti
+      dopunjeni/potvrđeni od strane pravnog savetnika organizacije.
+    </p>
+
+    <h2>Svrha servisa</h2>
+    <p>
+      Ovaj servis je besplatan dijagnostički alat koji korisniku pomaže da
+      proveri da li DNS upiti njegovog uređaja "cure" van aktivne VPN/proxy
+      konekcije. Servis je informativne/dijagnostičke prirode.
+    </p>
+
+    <h2>Prihvatljiva upotreba</h2>
+    <p>Korisnik se obavezuje da neće:</p>
+    <ul>
+      <li>Pokušavati da preoptereti, zloupotrebi ili naruši rad DNS ili HTTP infrastrukture servisa</li>
+      <li>Koristiti servis kao deo napada na treće strane (npr. reflection/amplification pokušaji)</li>
+      <li>Pokušavati neovlašćen pristup podacima drugih korisnika ili sesija</li>
+      <li>Koristiti automatizovane alate za masovno kreiranje test sesija van uobičajene dijagnostičke upotrebe</li>
+    </ul>
+
+    <h2>Tačnost rezultata</h2>
+    <p>
+      Rezultati testa (uključujući približnu geografsku lokaciju i naziv
+      ISP/ASN organizacije DNS resolvera) zasnovani su na javno dostupnim
+      IP geolokacionim bazama podataka (DB-IP Lite) i predstavljaju procenu,
+      ne garantovano tačnu informaciju. Lokacija se odnosi na DNS resolver,
+      NE nužno na fizičku lokaciju korisnika.
+    </p>
+
+    <h2>Atribucija podataka</h2>
+    <p>IP geolokacija: DB-IP (<a href="https://db-ip.com" target="_blank" rel="noopener">db-ip.com</a>), korišćeno u skladu sa licencom DB-IP Lite baza.</p>
+
+    <h2>Dostupnost servisa</h2>
+    <p>
+      Servis se pruža "takav kakav jeste", bez garancije neprekidne
+      dostupnosti. [PRAVNI PREGLED POTREBAN - definisati SLA ako je
+      primenjivo.]
+    </p>
+
+    <h2>Bezbednosna ograničenja</h2>
+    <p>
+      Servis primenjuje mere protiv zloupotrebe (rate limiting, ograničenja
+      veličine odgovora, autoritativni DNS ograničen isključivo na
+      sopstvenu test zonu). Zaobilaženje ili pokušaj zaobilaženja ovih mera
+      je zabranjeno.
+    </p>
+
+    <h2>Ograničenje odgovornosti</h2>
+    <p>
+      [PRAVNI PREGLED POTREBAN. Ne uključivati generalizovane klauzule o
+      potpunom isključenju odgovornosti bez pravnog pregleda primenjivog
+      prava. Ovaj nacrt namerno ne sadrži takve klauzule dok ih pravni tim
+      ne formuliše.]
+    </p>
+
+    <h2>Merodavno pravo</h2>
+    <p>[PRAVNI PREGLED POTREBAN - odrediti merodavno pravo i nadležnost.]</p>
+
+    <h2>Kontakt</h2>
+    <p>[KONTAKT EMAIL / ADRESA ORGANIZACIJE]</p>
+
+    <p class="hint">Poslednje ažurirano: [DATUM] · Verzija dokumenta: [VERZIJA]</p>
+  </div>
+</body>
+</html>

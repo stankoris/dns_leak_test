@@ -30,6 +30,21 @@ body {
   padding: 24px 16px 48px;
 }
 
+.container.legal {
+  max-width: 680px;
+}
+
+.container.legal h2 {
+  font-size: 1.1rem;
+  margin-top: 28px;
+}
+
+.container.legal p,
+.container.legal li {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
 header {
   text-align: center;
   margin-bottom: 32px;
@@ -60,6 +75,26 @@ h1 {
   display: none;
 }
 
+.consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.consent-row input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.consent-row a {
+  color: var(--primary);
+}
+
 .btn-primary,
 .btn-secondary {
   font-size: 1rem;
@@ -68,19 +103,25 @@ h1 {
   border-radius: 999px;
   border: none;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
 }
 
 .btn-primary {
   background: var(--primary);
   color: white;
+  margin-top: 8px;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
 }
 
-.btn-primary:active {
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary:active:not(:disabled) {
   transform: scale(0.98);
 }
 
@@ -175,7 +216,14 @@ footer {
   margin-top: 32px;
 }
 
-/* Responsive - manji ekrani */
+.attribution {
+  font-size: 0.75rem;
+}
+
+.attribution a {
+  color: var(--text-dim);
+}
+
 @media (max-width: 480px) {
   h1 {
     font-size: 1.5rem;
@@ -191,6 +239,6 @@ footer {
 
   thead th:nth-child(3),
   tbody td:nth-child(3) {
-    display: none; /* sakrij kolonu "Lokacija" na uskim ekranima */
+    display: none;
   }
 }
