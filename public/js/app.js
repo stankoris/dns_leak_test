@@ -1,155 +1,212 @@
-const privacyCheck = document.getElementById('privacy-check');
-const termsCheck = document.getElementById('terms-check');
+'use strict';
+
 const startBtn = document.getElementById('start-btn');
 const retryBtn = document.getElementById('retry-btn');
-const startCard = document.getElementById('start-card');
-const progressCard = document.getElementById('progress-card');
+const privacyCheck = document.getElementById('privacy-check');
+const termsCheck = document.getElementById('terms-check');
+const startState = document.getElementById('start-state');
+const progressState = document.getElementById('progress-state');
+const resultsState = document.getElementById('results-state');
 const progressText = document.getElementById('progress-text');
-const resultsCard = document.getElementById('results-card');
+const progressBar = document.getElementById('progress-bar');
 const resultsBody = document.getElementById('results-body');
-const verdictEl = document.getElementById('verdict');
-const geoDisabledNote = document.getElementById('geo-disabled-note');
+const verdict = document.getElementById('verdict');
+const geoNote = document.getElementById('geo-note');
+const startError = document.getElementById('start-error');
 
 let currentResultToken = null;
 
-function updateStartButton() {
-  startBtn.disabled = !(privacyCheck.checked && termsCheck.checked);
-}
-privacyCheck.addEventListener('change', updateStartButton);
-termsCheck.addEventListener('change', updateStartButton);
-
-/**
- * Koristimo crypto.getRandomValues (CSPRNG) umesto Math.random() za
- * probeId - konzistentno sa zahtevom da svi identifikatori koji ucestvuju
- * u bezbednosno relevantnoj logici budu kriptografski nasumicni.
- */
 function randomHex(byteLength = 8) {
   const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function sendProbe(hostname) {
+function setProgress(percent, message) {
+  progressBar.style.width = `${percent}%`;
+  progressText.textContent = message;
+}
+
+function updateStartButton() {
+  const ready = privacyCheck.checked && termsCheck.checked;
+  startBtn.dataset.ready = String(ready);
+  startBtn.setAttribute('aria-disabled', String(!ready));
+  if (ready) showStartError('');
+}
+
+function showStartError(message) {
+  startError.textContent = message;
+  startError.classList.toggle('hidden', !message);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function triggerDnsProbe(hostname) {
   return new Promise((resolve) => {
-    const img = new Image();
-    const done = () => resolve();
-    img.onload = done;
-    img.onerror = done; // ocekivano - nema pravog HTTP servera na tim imenima
-    img.src = `http://${hostname}/probe.png?_=${Date.now()}`;
-    setTimeout(done, 3000);
+    const image = new Image();
+    let finished = false;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      image.onload = null;
+      image.onerror = null;
+      resolve();
+    };
+
+    image.onload = finish;
+    image.onerror = finish;
+
+    // HTTPS avoids mixed-content blocking when the main site is served over HTTPS.
+    // The image itself is expected to fail; the DNS lookup is the signal we need.
+    const scheme = window.location.protocol === 'https:' ? 'https' : 'http';
+    image.src = `${scheme}://${hostname}/dns-probe.gif?cache=${randomHex(4)}`;
+
+    setTimeout(finish, 2200);
   });
+}
+
+async function createTestSession() {
+  const response = await fetch('/api/tests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({
+      privacyAcknowledged: privacyCheck.checked,
+      termsAccepted: termsCheck.checked,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || 'Unable to start the test.');
+  }
+  return data;
+}
+
+async function fetchResults(resultToken) {
+  const response = await fetch(`/api/tests/${encodeURIComponent(resultToken)}`, {
+    cache: 'no-store',
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || 'Unable to retrieve test results.');
+  }
+  return data;
+}
+
+async function removeSession() {
+  if (!currentResultToken) return;
+  const token = currentResultToken;
+  currentResultToken = null;
+  try {
+    await fetch(`/api/tests/${encodeURIComponent(token)}`, {
+      method: 'DELETE',
+      cache: 'no-store',
+    });
+  } catch (_) {
+    // Session cleanup is best-effort. It also expires automatically server-side.
+  }
+}
+
+function renderResults(data) {
+  startBtn.disabled = false;
+  resultsBody.innerHTML = '';
+
+  if (!data.resolvers || data.resolvers.length === 0) {
+    verdict.className = 'verdict caution';
+    verdict.innerHTML = `
+      <strong>No resolver was detected</strong>
+      <p>No DNS query reached the test server during the collection window. Try again once. If this persists, verify the authoritative DNS delegation and browser/network filtering.</p>
+    `;
+  } else {
+    verdict.className = 'verdict good';
+    verdict.innerHTML = `
+      <strong>${data.resolverCount} DNS resolver${data.resolverCount === 1 ? '' : 's'} detected</strong>
+      <p>Compare the provider shown below with the DNS service you expect to use. An unexpected ISP resolver may indicate a DNS leak.</p>
+    `;
+
+    for (const resolver of data.resolvers) {
+      const provider = resolver.organization || resolver.asn || 'Not available';
+      const location = [resolver.city, resolver.country].filter(Boolean).join(', ') || 'Not available';
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="mono">${escapeHtml(resolver.ip)}</td>
+        <td>${escapeHtml(provider)}</td>
+        <td>${escapeHtml(location)}</td>
+        <td>${escapeHtml(resolver.count)}</td>
+      `;
+      resultsBody.appendChild(row);
+    }
+  }
+
+  geoNote.textContent = data.geoLookupEnabled
+    ? 'Provider and location data come from the configured local IP database.'
+    : 'Local ISP/location enrichment is disabled; resolver IP detection still works normally.';
+
+  progressState.classList.add('hidden');
+  resultsState.classList.remove('hidden');
 }
 
 async function runTest() {
-  if (!privacyCheck.checked || !termsCheck.checked) return; // odbrana i na frontendu, ali server je taj koji stvarno primorava
-
-  startCard.classList.add('hidden');
-  resultsCard.classList.add('hidden');
-  progressCard.classList.remove('hidden');
-  progressText.textContent = 'Pokrecem test...';
-
-  const startRes = await fetch('/api/tests', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ privacyAcknowledged: true, termsAccepted: true }),
-  });
-
-  if (!startRes.ok) {
-    const err = await startRes.json().catch(() => ({}));
-    progressText.textContent = err.error || 'Greska pri pokretanju testa. Pokusaj ponovo.';
+  if (!privacyCheck.checked || !termsCheck.checked) {
+    showStartError('Please check both boxes before starting the test.');
     return;
   }
 
-  const { testId, resultToken, dnsTestDomain, probeCount } = await startRes.json();
-  currentResultToken = resultToken;
+  showStartError('');
+  startBtn.disabled = true;
+  startState.classList.add('hidden');
+  resultsState.classList.add('hidden');
+  progressState.classList.remove('hidden');
 
-  const count = probeCount || 8;
-  progressText.textContent = `Saljem ${count} DNS upita...`;
-  const probes = [];
-  for (let i = 0; i < count; i++) {
-    const hostname = `${randomHex(8)}.${testId}.${dnsTestDomain}`;
-    probes.push(sendProbe(hostname));
+  try {
+    setProgress(16, 'Creating a private test session…');
+    const session = await createTestSession();
+    currentResultToken = session.resultToken;
+
+    setProgress(36, `Sending ${session.probeCount} unique DNS probes…`);
+    const probes = [];
+    for (let index = 0; index < session.probeCount; index += 1) {
+      const hostname = `${randomHex(4)}.${session.testId}.${session.dnsTestDomain}`;
+      probes.push(triggerDnsProbe(hostname));
+    }
+    await Promise.all(probes);
+
+    setProgress(72, 'Waiting for DNS resolvers to reach the authoritative server…');
+    await new Promise((resolve) => setTimeout(resolve, 1800));
+
+    setProgress(90, 'Collecting results…');
+    const data = await fetchResults(session.resultToken);
+    setProgress(100, 'Done');
+    renderResults(data);
+  } catch (error) {
+    progressState.classList.add('hidden');
+    startState.classList.remove('hidden');
+    showStartError(error.message || 'The test failed. Please try again.');
+    startBtn.disabled = false;
+    updateStartButton();
   }
-  await Promise.all(probes);
-
-  progressText.textContent = 'Prikupljam rezultate...';
-  await new Promise((r) => setTimeout(r, 2000));
-
-  const resultsRes = await fetch(`/api/tests/${resultToken}`);
-  if (!resultsRes.ok) {
-    progressText.textContent = 'Nije bilo moguce preuzeti rezultate.';
-    return;
-  }
-  const data = await resultsRes.json();
-  renderResults(data);
 }
 
-/**
- * Podaci u tabeli (ISP naziv, grad, drzava) poticu iz spoljasnje IP baze i
- * tretiramo ih kao NEPOUZDAN ulaz - zato gradimo DOM cvorove i koristimo
- * textContent, NIKAD innerHTML, cak i ako danas ti podaci dolaze iz
- * lokalne baze koju sami kontrolisemo.
- */
-function renderResults(data) {
-  progressCard.classList.add('hidden');
-  resultsCard.classList.remove('hidden');
-  resultsBody.innerHTML = '';
-
-  if (!data.geoLookupEnabled) {
-    geoDisabledNote.textContent = 'Geo/ISP obogaćivanje rezultata je isključeno na ovom serveru - prikazane su samo IP adrese.';
-  } else {
-    geoDisabledNote.textContent = '';
-  }
-
-  if (!data.resolvers || data.resolvers.length === 0) {
-    verdictEl.className = 'verdict leak';
-    verdictEl.textContent =
-      'Nijedan DNS upit nije stigao do servera. Ovo moze znaciti da tvoj DNS ide preko sifrovanog kanala (DoH/DoT), ili da nesto sa delegacijom/mrezom nije ispravno podeseno.';
-    return;
-  }
-
-  const distinctOrgs = new Set(data.resolvers.map((r) => r.asnOrg || r.ip));
-
-  if (distinctOrgs.size > 1) {
-    verdictEl.className = 'verdict leak';
-    verdictEl.textContent = `Detektovano ${distinctOrgs.size} razlicitih DNS provajdera. Proveri da li se svi poklapaju sa tvojim VPN provajderom.`;
-  } else {
-    verdictEl.className = 'verdict safe';
-    verdictEl.textContent = 'Svi DNS upiti dolaze od jednog provajdera. Proveri da li se ime organizacije poklapa sa tvojim VPN provajderom.';
-  }
-
-  data.resolvers.forEach((r) => {
-    const tr = document.createElement('tr');
-
-    const ipTd = document.createElement('td');
-    ipTd.textContent = r.ip;
-
-    const orgTd = document.createElement('td');
-    orgTd.textContent = r.asnOrg || 'Nepoznato';
-
-    const locTd = document.createElement('td');
-    locTd.textContent = r.city ? `${r.city}, ${r.country || ''}` : (r.country || '-');
-
-    const countTd = document.createElement('td');
-    countTd.textContent = String(r.hitCount);
-
-    tr.append(ipTd, orgTd, locTd, countTd);
-    resultsBody.appendChild(tr);
-  });
-}
-
+privacyCheck.addEventListener('change', updateStartButton);
+termsCheck.addEventListener('change', updateStartButton);
 startBtn.addEventListener('click', runTest);
-
 retryBtn.addEventListener('click', async () => {
-  if (currentResultToken) {
-    fetch(`/api/tests/${currentResultToken}`, { method: 'DELETE' }).catch(() => {});
-    currentResultToken = null;
-  }
-  resultsCard.classList.add('hidden');
-  startCard.classList.remove('hidden');
+  await removeSession();
+  resultsState.classList.add('hidden');
+  progressState.classList.add('hidden');
+  startState.classList.remove('hidden');
+  progressBar.style.width = '18%';
+  showStartError('');
+  updateStartButton();
 });
 
-// Namerno NEMA "cleanup on page leave" preko navigator.sendBeacon ovde -
-// sendBeacon uvek salje POST, ne DELETE, pa ne bi stvarno pogodio DELETE
-// rutu i bio bi varljiv kod koji izgleda kao da radi cisc enje a ne radi.
-// Sesija ce prirodno isteci najkasnije nakon SESSION_TTL_SECONDS.
+updateStartButton();

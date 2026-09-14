@@ -1,9 +1,6 @@
 [Unit]
-Description=DNS Leak Test (HTTP + authoritative DNS, single process)
+Description=DNS Leak Test (HTTP + authoritative DNS)
 After=network.target
-; Ako je systemd-resolved aktivan na 127.0.0.53:53, ne konfliktuje sa ovim
-; servisom SVE DOK je DNS_BIND_ADDRESS podesen na JAVNU IP adresu servera,
-; ne na 0.0.0.0 ili 127.0.0.1. Proveri: `ss -tulpn | grep :53` pre starta.
 
 [Service]
 Type=simple
@@ -15,12 +12,9 @@ ExecStart=/usr/bin/node src/index.js
 Restart=on-failure
 RestartSec=2
 
-; --- Privilegije: SAMO CAP_NET_BIND_SERVICE, nista vise ---
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
-
-; --- Filesystem izolacija ---
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/opt/dns-leak-test/data
@@ -33,17 +27,9 @@ RestrictSUIDSGID=true
 RestrictRealtime=true
 LockPersonality=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
-
-; --- Ograničenja resursa (podesi po realnom opterećenju) ---
 MemoryMax=512M
 TasksMax=256
 LimitNOFILE=4096
 
 [Install]
 WantedBy=multi-user.target
-
-# NAPOMENA: pre prvog pokretanja u produkciji, testiraj da li Node.js
-# uspesno startuje sa svim ovim ogranicenjima ukljucenim - neka od njih
-# (narocito ProtectKernelModules, RestrictAddressFamilies) mogu da
-# zahtevaju podesavanje u zavisnosti od distribucije/verzije Node-a.
-# Ukljuci ih JEDNO PO JEDNO ako startup ne uspeva odmah sa svima.

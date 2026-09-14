@@ -1,121 +1,55 @@
 'use strict';
 
+const maxmind = require('maxmind');
 const config = require('../config');
-
-/**
- * geo/lookup.js
- *
- * NAMERNO ne postoji nijedan network zahtev u ovom fajlu. Resolver IP
- * adrese se NIKAD ne salju trecoj strani samo da bi se dobio ISP/lokacija
- * - to je bio problem sa prethodnom ip-api.com integracijom (HTTP, bez
- * enkripcije, i uslovi koriscenja koji ne dozvoljavaju komercijalnu
- * upotrebu besplatnog nivoa).
- *
- * Umesto toga koristimo lokalno preuzete DB-IP Lite baze (MMDB format,
- * kompatibilne sa 'maxmind' Node.js citacem) koje administrator servera
- * sam preuzme i postavi na disk (vidi README, sekcija "DB-IP baze").
- *
- * Ako baze nisu prisutne, aplikacija se NE gasi - geo podaci su "nice to
- * have" kozmeticka informacija, ne kriticna funkcionalnost testa. Umesto
- * toga, upozoravamo na startu i vracamo prazne/null geo podatke.
- */
 
 let cityReader = null;
 let asnReader = null;
-let initAttempted = false;
-let maxmind = null;
+let initPromise = null;
 
 async function init() {
-  if (initAttempted) return;
-  initAttempted = true;
+  if (initPromise) return initPromise;
 
-  if (!config.geo.cityDbPath && !config.geo.asnDbPath) {
-    console.warn(
-      '[GEO] DBIP_CITY_DB / DBIP_ASN_DB nisu podeseni - geo/ISP obogacivanje rezultata bice iskljuceno.'
-    );
-    return;
-  }
-
-  try {
-    // Lenjo ucitavanje da aplikacija ne pukne na startu ako paket nije
-    // instaliran u okruzenjima gde geo lookup namerno nije potreban.
-    // eslint-disable-next-line global-require
-    maxmind = require('maxmind');
-  } catch (err) {
-    console.error(
-      "[GEO] Paket 'maxmind' nije instaliran. Pokreni 'npm install maxmind' ili ostavi " +
-        'DBIP_* promenljive prazne da iskljucis geo obogacivanje.'
-    );
-    return;
-  }
-
-  try {
-    if (config.geo.cityDbPath) {
-      cityReader = await maxmind.open(config.geo.cityDbPath);
-    }
-  } catch (err) {
-    console.error(`[GEO] Nije moguce ucitati City bazu (${config.geo.cityDbPath}): ${err.message}`);
-  }
-
-  try {
-    if (config.geo.asnDbPath) {
-      asnReader = await maxmind.open(config.geo.asnDbPath);
-    }
-  } catch (err) {
-    console.error(`[GEO] Nije moguce ucitati ASN bazu (${config.geo.asnDbPath}): ${err.message}`);
-  }
-}
-
-/**
- * Vraca strukturu istog oblika bez obzira da li su baze dostupne, kako
- * pozivalac (routes.js) ne bi morao da razlikuje slucajeve.
- */
-function lookup(ip) {
-  const result = {
-    ip,
-    country: null,
-    countryCode: null,
-    region: null,
-    city: null,
-    asn: null,
-    asnOrg: null,
-  };
-
-  if (cityReader) {
+  initPromise = (async () => {
     try {
-      const cityData = cityReader.get(ip);
-      if (cityData) {
-        result.country = cityData.country?.names?.en || null;
-        result.countryCode = cityData.country?.iso_code || null;
-        result.region = cityData.subdivisions?.[0]?.names?.en || null;
-        result.city = cityData.city?.names?.en || null;
-      }
-    } catch (err) {
-      // neispravna IP adresa ili slicno - ignorisi, vrati prazno
+      if (config.geo.cityDb) cityReader = await maxmind.open(config.geo.cityDb);
+      if (config.geo.asnDb) asnReader = await maxmind.open(config.geo.asnDb);
+    } catch (error) {
+      console.error(`[GEO] Local database could not be opened: ${error.message}`);
+      cityReader = null;
+      asnReader = null;
     }
-  }
 
-  if (asnReader) {
-    try {
-      const asnData = asnReader.get(ip);
-      if (asnData) {
-        result.asn = asnData.autonomous_system_number || null;
-        result.asnOrg = asnData.autonomous_system_organization || null;
-      }
-    } catch (err) {
-      // ignorisi
+    if (!cityReader && !asnReader) {
+      console.log('[GEO] Local ISP/location enrichment is disabled.');
     }
-  }
+  })();
 
-  return result;
+  return initPromise;
 }
 
-function lookupMany(ips) {
-  return ips.map(lookup);
-}
-
-function isEnabled() {
+function enabled() {
   return Boolean(cityReader || asnReader);
 }
 
-module.exports = { init, lookup, lookupMany, isEnabled };
+async function lookup(ip) {
+  await init();
+
+  const city = cityReader ? cityReader.get(ip) : null;
+  const asn = asnReader ? asnReader.get(ip) : null;
+
+  return {
+    ip,
+    organization: asn?.autonomous_system_organization || null,
+    asn: asn?.autonomous_system_number ? `AS${asn.autonomous_system_number}` : null,
+    city: city?.city?.names?.en || null,
+    country: city?.country?.names?.en || null,
+  };
+}
+
+async function lookupMany(ips) {
+  await init();
+  return Promise.all(ips.map(lookup));
+}
+
+module.exports = { init, enabled, lookupMany };

@@ -1,91 +1,150 @@
-<!DOCTYPE html>
-<html lang="sr">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DNS Leak Test</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Run a self-hosted DNS leak test and see which DNS resolvers handle your queries.">
+  <title>DNS Leak Test | Firewall Mindset</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>DNS Leak Test</h1>
-      <p class="subtitle">
-        Proveri da li tvoja VPN ili proxy konekcija "curi" DNS upite ka tvom
-        pravom internet provajderu.
-      </p>
+  <div class="page-shell">
+    <header class="hero">
+      <a class="brand" href="/" aria-label="Firewall Mindset DNS Leak Test home">
+        <span class="brand-mark" aria-hidden="true">FM</span>
+        <span>Firewall Mindset</span>
+      </a>
+
+      <div class="hero-copy">
+        <span class="eyebrow">Privacy diagnostic</span>
+        <h1>DNS Leak Test</h1>
+        <p>
+          See which DNS resolvers your connection is actually using and check
+          whether DNS traffic is escaping your VPN or preferred DNS provider.
+        </p>
+      </div>
     </header>
 
-    <main>
-      <div class="card" id="start-card">
-        <label class="consent-row">
-          <input type="checkbox" id="privacy-check" />
-          Pročitao/la sam <a href="/privacy.html" target="_blank" rel="noopener">Obaveštenje o privatnosti</a>
-          i razumem da pokretanje testa privremeno obrađuje IP adrese DNS
-          resolvera i tehničke podatke potrebne za izvršenje testa.
-        </label>
-        <label class="consent-row">
-          <input type="checkbox" id="terms-check" />
-          Prihvatam <a href="/terms.html" target="_blank" rel="noopener">Uslove korišćenja</a>.
-        </label>
+    <main class="content">
+      <section class="panel test-panel" aria-labelledby="test-title">
+        <div class="panel-heading">
+          <div>
+            <span class="section-label">Live test</span>
+            <h2 id="test-title">Check your DNS path</h2>
+          </div>
+          <span class="status-pill"><span class="status-dot"></span> Ready</span>
+        </div>
 
-        <button id="start-btn" class="btn-primary" disabled>Pokreni test</button>
-        <p class="hint">Test traje oko 5-10 sekundi.</p>
-      </div>
+        <div id="start-state">
+          <div class="privacy-box">
+            <label class="check-row">
+              <input id="privacy-check" type="checkbox">
+              <span class="check-ui" aria-hidden="true"></span>
+              <span>
+                I have read the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Notice</a>
+                and understand that resolver IP addresses are processed temporarily to run this test.
+              </span>
+            </label>
 
-      <div class="card hidden" id="progress-card">
-        <div class="spinner"></div>
-        <p id="progress-text">Šaljem DNS upite...</p>
-      </div>
+            <label class="check-row">
+              <input id="terms-check" type="checkbox">
+              <span class="check-ui" aria-hidden="true"></span>
+              <span>
+                I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms of Use</a>.
+              </span>
+            </label>
+          </div>
 
-      <div class="card hidden" id="results-card">
-        <h2>Rezultati</h2>
-        <div id="verdict" class="verdict"></div>
+          <div class="action-row">
+            <div class="time-note">
+              <span class="clock-icon" aria-hidden="true">◷</span>
+              Usually finishes in 5–10 seconds
+            </div>
+            <button id="start-btn" class="button button-primary" type="button" data-ready="false">
+              <span>Start DNS Leak Test</span>
+              <span class="button-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
 
-        <table id="results-table">
-          <thead>
-            <tr>
-              <th>IP adresa DNS servera</th>
-              <th>ISP / ASN organizacija</th>
-              <th>Lokacija resolvera (približno)</th>
-              <th>Broj upita</th>
-            </tr>
-          </thead>
-          <tbody id="results-body"></tbody>
-        </table>
-        <p class="hint" id="geo-disabled-note"></p>
+          <p id="start-error" class="inline-error hidden" role="alert"></p>
+        </div>
 
-        <button id="retry-btn" class="btn-secondary">Testiraj ponovo</button>
-      </div>
+        <div id="progress-state" class="hidden" aria-live="polite">
+          <div class="progress-wrap">
+            <div class="radar" aria-hidden="true">
+              <span></span><span></span><i></i>
+            </div>
+            <div>
+              <h3 id="progress-title">Running DNS test</h3>
+              <p id="progress-text">Creating a private test session…</p>
+            </div>
+          </div>
+          <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+        </div>
 
-      <section class="explainer">
-        <h3>Kako ovo radi?</h3>
-        <p>
-          Kad koristiš VPN, sav tvoj saobraćaj bi trebalo da ide kroz
-          enkriptovani tunel - uključujući i DNS upite. Ako je konfiguracija
-          loša, DNS upiti mogu da "procure" direktno ka tvom ISP-u, mimo VPN
-          tunela.
-        </p>
-        <p>
-          Ovaj test generiše niz jedinstvenih, nasumičnih poddomena i prati
-          koji DNS serveri odgovaraju na te upite. Ako među njima vidiš ime
-          svog kućnog internet provajdera umesto VPN provajdera, tvoj DNS
-          cura.
-        </p>
-        <p class="hint">
-          Lokacija resolvera je približna procena na osnovu IP adrese, ne
-          tvoja stvarna lokacija niti stvarna lokacija resolvera nužno na
-          nivou grada.
-        </p>
+        <div id="results-state" class="hidden" aria-live="polite">
+          <div id="verdict" class="verdict"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Resolver IP</th>
+                  <th>Provider</th>
+                  <th>Location</th>
+                  <th>Queries</th>
+                </tr>
+              </thead>
+              <tbody id="results-body"></tbody>
+            </table>
+          </div>
+
+          <div class="results-actions">
+            <p id="geo-note" class="muted"></p>
+            <button id="retry-btn" class="button button-secondary" type="button">Run Again</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="info-grid" aria-label="About this DNS leak test">
+        <article class="info-card">
+          <div class="info-icon" aria-hidden="true">01</div>
+          <h3>What the test does</h3>
+          <p>
+            Your browser triggers unique DNS lookups under this site's delegated test zone.
+            The authoritative DNS server records which resolvers reach it.
+          </p>
+        </article>
+
+        <article class="info-card">
+          <div class="info-icon" aria-hidden="true">02</div>
+          <h3>How to read the result</h3>
+          <p>
+            Compare the detected resolver with the DNS service you expect to use.
+            An unexpected ISP resolver may indicate a DNS leak.
+          </p>
+        </article>
+
+        <article class="info-card">
+          <div class="info-icon" aria-hidden="true">03</div>
+          <h3>Minimal retention</h3>
+          <p>
+            Test sessions are kept in memory only for a short period and expire automatically.
+            No account is required to run the test.
+          </p>
+        </article>
       </section>
     </main>
 
-    <footer>
-      <p>Self-hosted DNS leak test</p>
-      <p class="attribution">IP geolokacija: <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a> (kada je uključena)</p>
+    <footer class="footer">
+      <span>Firewall Mindset</span>
+      <nav aria-label="Legal links">
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+      </nav>
     </footer>
   </div>
 
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js" defer></script>
 </body>
 </html>

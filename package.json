@@ -1,17 +1,18 @@
 {
   "name": "dns-leak-test",
-  "version": "2.0.0",
-  "description": "Self-hosted DNS leak test - hardened, authoritative-only DNS, lokalni geo lookup",
+  "version": "2.1.0",
+  "description": "Self-hosted DNS leak test with an authoritative DNS server and a small web UI.",
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "NODE_ENV=development node --watch src/index.js"
+    "dev": "NODE_ENV=development node --watch src/index.js",
+    "check": "node --check src/index.js && node --check src/config.js && node --check src/dns/server.js && node --check src/http/server.js && node --check src/http/routes.js && node --check src/sessions/store.js && node --check src/geo/lookup.js && node --check src/security/rateLimiter.js && node --check public/js/app.js"
   },
   "dependencies": {
-    "dns2": "^2.1.0",
+    "dns2": "2.4.0",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^4.22.2",
     "maxmind": "^4.3.18"
   },
   "engines": {
