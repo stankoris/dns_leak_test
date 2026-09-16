@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <meta
+    name="description"
+    content="Privacy Policy for the Firewall Mindset DNS Leak Test."
+  />
+
+  <title>Privacy Policy | Firewall Mindset DNS Leak Test</title>
+
+  <link
+    rel="stylesheet"
+    href="/css/style.css"
+  />
+</head>
+
+<body>
+
+  <div class="container">
+
+    <header>
+      <h1>Privacy Policy</h1>
+
+      <p class="subtitle">
+        How the Firewall Mindset DNS Leak Test processes technical
+        information when you use the service.
+      </p>
+    </header>
+
+
+    <main>
+
+      <section class="card legal-section">
+
+        <p>
+          <strong>Last updated:</strong>
+          September 16, 2026
+        </p>
+
+        <p>
+          This Privacy Policy explains what information is processed when
+          you use the Firewall Mindset DNS Leak Test, why that information
+          is needed, how long it is retained, and which third-party
+          services may receive limited technical information.
+        </p>
+
+        <p>
+          By using this service, you acknowledge that the technical
+          processing described below is necessary for the DNS leak test
+          to function.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>1. Who operates this service?</h2>
+
+        <p>
+          The Firewall Mindset DNS Leak Test is operated by:
+        </p>
+
+        <p>
+          <strong>Operator:</strong>
+          TODO: Your legal name or business name
+        </p>
+
+        <p>
+          <strong>Project:</strong>
+          Firewall Mindset
+        </p>
+
+        <p>
+          <strong>Contact:</strong>
+          TODO: privacy@yourdomain.com
+        </p>
+
+        <p>
+          <strong>Country:</strong>
+          Serbia
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>2. What information is processed?</h2>
+
+        <p>
+          The service processes only the technical information needed
+          to perform the DNS leak test, protect the service from abuse,
+          and present the results.
+        </p>
+
+        <h3>Visitor IP address</h3>
+
+        <p>
+          Your connection IP address may be processed by the HTTP server
+          for security purposes, including rate limiting and abuse
+          prevention.
+        </p>
+
+
+        <h3>DNS resolver IP addresses</h3>
+
+        <p>
+          When you run a DNS leak test, DNS resolvers used by your
+          connection contact our authoritative DNS server.
+        </p>
+
+        <p>
+          The IP addresses of those DNS resolvers are recorded temporarily
+          so they can be displayed as part of the test result.
+        </p>
+
+
+        <h3>Random test identifiers</h3>
+
+        <p>
+          Each test is assigned a random temporary identifier.
+          Individual DNS probes also use randomly generated identifiers.
+        </p>
+
+        <p>
+          These identifiers are used to associate incoming DNS queries
+          with the correct test session and to reduce interference from
+          DNS caching.
+        </p>
+
+
+        <h3>DNS query information</h3>
+
+        <p>
+          The service processes DNS queries directed at the temporary
+          hostnames generated specifically for the DNS leak test.
+        </p>
+
+
+        <h3>Network information</h3>
+
+        <p>
+          Resolver IP addresses may be enriched with publicly available
+          network information such as:
+        </p>
+
+        <ul>
+          <li>Internet service provider</li>
+          <li>Network organization</li>
+          <li>Autonomous system information</li>
+          <li>Country</li>
+          <li>Approximate city</li>
+        </ul>
+
+
+        <h3>Technical server logs</h3>
+
+        <p>
+          Infrastructure components such as the web server, reverse proxy,
+          operating system, or hosting provider may create limited
+          technical logs for security, troubleshooting, and service
+          reliability.
+        </p>
+
+        <p>
+          We do not intentionally log every DNS probe at the application
+          level.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>3. Why is this information processed?</h2>
+
+        <p>
+          Technical information is processed for the following purposes:
+        </p>
+
+        <ul>
+          <li>Performing the DNS leak test requested by the user</li>
+
+          <li>
+            Determining which DNS resolvers contacted our authoritative
+            DNS server
+          </li>
+
+          <li>
+            Displaying ISP, network organization, and approximate location
+            information about detected DNS resolvers
+          </li>
+
+          <li>
+            Preventing automated abuse, excessive requests, and denial
+            of service attempts
+          </li>
+
+          <li>
+            Maintaining the security and reliability of the service
+          </li>
+
+          <li>
+            Troubleshooting technical failures
+          </li>
+        </ul>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>4. How long is information retained?</h2>
+
+        <p>
+          DNS leak test data is designed to be temporary.
+        </p>
+
+        <h3>Test sessions</h3>
+
+        <p>
+          Test sessions are currently stored in server memory for
+          approximately:
+        </p>
+
+        <p>
+          <strong>180 seconds</strong>
+        </p>
+
+        <p>
+          After expiration, the session and its recorded resolver
+          information are automatically removed from the application's
+          in-memory session store.
+        </p>
+
+
+        <h3>IP enrichment cache</h3>
+
+        <p>
+          Network enrichment results may currently be cached in memory
+          for up to:
+        </p>
+
+        <p>
+          <strong>1 hour</strong>
+        </p>
+
+        <p>
+          This cache exists to reduce unnecessary requests to third-party
+          network information services.
+        </p>
+
+
+        <h3>Rate limiting data</h3>
+
+        <p>
+          Temporary IP-based rate limiting information is stored in memory
+          for short periods and is automatically removed when it is no
+          longer needed.
+        </p>
+
+
+        <h3>Infrastructure logs</h3>
+
+        <p>
+          Reverse proxy, system, hosting, and security logs may have
+          different retention periods depending on infrastructure
+          configuration.
+        </p>
+
+        <p>
+          TODO: Before public launch, document the actual Nginx,
+          systemd/journald, firewall, and hosting-provider log retention
+          configuration here.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>5. Third-party services</h2>
+
+        <p>
+          Some limited technical information may be processed by
+          third-party infrastructure or network information providers.
+        </p>
+
+
+        <h3>IP information provider</h3>
+
+        <p>
+          DNS resolver IP addresses may be sent to an external IP
+          information service in order to retrieve information such as
+          ISP, organization, autonomous system, country, and approximate
+          location.
+        </p>
+
+        <p>
+          The current implementation uses:
+        </p>
+
+        <p>
+          <strong>ip-api.com</strong>
+        </p>
+
+        <p>
+          Only resolver IP addresses required for the test result are
+          submitted to this service.
+        </p>
+
+
+        <h3>Hosting provider</h3>
+
+        <p>
+          The application may be hosted on infrastructure operated by a
+          third-party hosting provider.
+        </p>
+
+        <p>
+          Current hosting provider:
+        </p>
+
+        <p>
+          <strong>TODO: Hetzner Online GmbH or actual production provider</strong>
+        </p>
+
+        <p>
+          Hosting providers may process network traffic and technical
+          server information as necessary to provide infrastructure and
+          security services.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>6. Cookies and browser storage</h2>
+
+        <p>
+          The DNS Leak Test currently does not require advertising,
+          analytics, or tracking cookies to perform the test.
+        </p>
+
+        <p>
+          The current privacy notice is not designed as a marketing-cookie
+          consent system.
+        </p>
+
+        <p>
+          If analytics, advertising, tracking technologies, or other
+          non-essential cookies are added in the future, this Privacy
+          Policy and the consent mechanism will be updated accordingly.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>7. Automated decision-making</h2>
+
+        <p>
+          The service does not make legal or similarly significant
+          automated decisions about users.
+        </p>
+
+        <p>
+          DNS resolver information is presented for informational and
+          diagnostic purposes.
+        </p>
+
+        <p>
+          The service does not automatically guarantee that a VPN is
+          secure or insecure based solely on the detected resolver list.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>8. Data security</h2>
+
+        <p>
+          Reasonable technical safeguards are used to reduce unnecessary
+          data exposure and abuse.
+        </p>
+
+        <p>
+          These safeguards may include:
+        </p>
+
+        <ul>
+          <li>Short-lived in-memory test sessions</li>
+          <li>Random cryptographic test identifiers</li>
+          <li>HTTP request rate limiting</li>
+          <li>Limits on active sessions</li>
+          <li>Limits on the number of DNS resolvers stored per session</li>
+          <li>Restricted backend network exposure</li>
+          <li>Reverse proxy protections</li>
+          <li>Controlled DNS responses</li>
+          <li>No recursive DNS resolution</li>
+        </ul>
+
+        <p>
+          No internet-based service can guarantee absolute security.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>9. Your privacy rights</h2>
+
+        <p>
+          Depending on the law applicable to you, you may have rights
+          regarding personal data, including rights to request access,
+          correction, deletion, restriction, or information about
+          processing.
+        </p>
+
+        <p>
+          Because most application-level test data is temporary and
+          identified only by random short-lived test identifiers, it may
+          not always be possible to associate expired test data with a
+          particular individual.
+        </p>
+
+        <p>
+          Privacy-related requests can be sent to:
+        </p>
+
+        <p>
+          <strong>TODO: privacy@yourdomain.com</strong>
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>10. International users</h2>
+
+        <p>
+          The service may be accessed from different countries.
+          Depending on the location of the user, hosting provider, and
+          third-party network information provider, technical data may
+          be processed in different jurisdictions.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>11. Changes to this Privacy Policy</h2>
+
+        <p>
+          This Privacy Policy may be updated when the service,
+          infrastructure, data processing practices, or legal requirements
+          change.
+        </p>
+
+        <p>
+          The latest version will be published on this page together with
+          its last updated date.
+        </p>
+
+      </section>
+
+
+      <section class="card legal-section">
+
+        <h2>12. Contact</h2>
+
+        <p>
+          If you have questions about this Privacy Policy or the way the
+          service processes technical information, contact:
+        </p>
+
+        <p>
+          <strong>TODO: privacy@yourdomain.com</strong>
+        </p>
+
+      </section>
+
+
+      <div class="legal-back">
+
+        <a
+          href="/"
+          class="btn-secondary legal-back-link"
+        >
+          Back to DNS Leak Test
+        </a>
+
+      </div>
+
+    </main>
+
+
+    <footer>
+
+      <p>
+        Firewall Mindset DNS Leak Test
+      </p>
+
+      <nav
+        class="footer-links"
+        aria-label="Legal"
+      >
+
+        <a href="/privacy.html">
+          Privacy Policy
+        </a>
+
+        <a href="/terms.html">
+          Terms of Use
+        </a>
+
+      </nav>
+
+    </footer>
+
+  </div>
+
+</body>
+</html>

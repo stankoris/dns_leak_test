@@ -1,74 +1,249 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DNS Leak Test</title>
+
+  <meta
+    name="description"
+    content="Check which DNS resolvers your internet connection is using and detect possible DNS leaks."
+  />
+
+  <title>DNS Leak Test | Firewall Mindset</title>
+
   <link rel="stylesheet" href="/css/style.css" />
 </head>
+
 <body>
+
   <div class="container">
+
     <header>
       <h1>DNS Leak Test</h1>
+
       <p class="subtitle">
-        Proveri da li tvoja VPN ili proxy konekcija "curi" DNS upite ka tvom
-        pravom internet provajderu.
+        Check which DNS resolvers your connection is using and whether
+        your VPN may be leaking DNS requests to your internet provider.
       </p>
     </header>
 
+
     <main>
+
+      <!-- Start test -->
+
       <div class="card" id="start-card">
-        <button id="start-btn" class="btn-primary">Pokreni test</button>
-        <p class="hint">Test traje oko 5-10 sekundi.</p>
+
+        <button
+          id="start-btn"
+          class="btn-primary"
+          type="button"
+        >
+          Start DNS Leak Test
+        </button>
+
+        <p class="hint">
+          The test usually takes about 5–10 seconds.
+        </p>
+
       </div>
 
-      <div class="card hidden" id="progress-card">
-        <div class="spinner"></div>
-        <p id="progress-text">Šaljem DNS upite...</p>
+
+      <!-- Test progress -->
+
+      <div
+        class="card hidden"
+        id="progress-card"
+        aria-live="polite"
+      >
+
+        <div
+          class="spinner"
+          aria-hidden="true"
+        ></div>
+
+        <p id="progress-text">
+          Sending DNS queries...
+        </p>
+
       </div>
 
-      <div class="card hidden" id="results-card">
-        <h2>Rezultati</h2>
-        <div id="verdict" class="verdict"></div>
 
-        <table id="results-table">
-          <thead>
-            <tr>
-              <th>IP adresa DNS servera</th>
-              <th>ISP / Organizacija</th>
-              <th>Lokacija</th>
-              <th>Broj upita</th>
-            </tr>
-          </thead>
-          <tbody id="results-body"></tbody>
-        </table>
+      <!-- Results -->
 
-        <button id="retry-btn" class="btn-secondary">Testiraj ponovo</button>
+      <div
+        class="card hidden"
+        id="results-card"
+      >
+
+        <h2>Results</h2>
+
+        <div
+          id="verdict"
+          class="verdict"
+          aria-live="polite"
+        ></div>
+
+
+        <div class="table-wrapper">
+
+          <table id="results-table">
+
+            <thead>
+              <tr>
+                <th>DNS Resolver IP</th>
+                <th>ISP / Organization</th>
+                <th>Location</th>
+                <th>Queries</th>
+              </tr>
+            </thead>
+
+            <tbody id="results-body"></tbody>
+
+          </table>
+
+        </div>
+
+
+        <button
+          id="retry-btn"
+          class="btn-secondary"
+          type="button"
+        >
+          Run Test Again
+        </button>
+
       </div>
+
+
+      <!-- Explanation -->
 
       <section class="explainer">
-        <h3>Kako ovo radi?</h3>
+
+        <h2>How does the DNS leak test work?</h2>
+
         <p>
-          Kad koristiš VPN, sav tvoj saobraćaj bi trebalo da ide kroz
-          enkriptovani tunel - uključujući i DNS upite (koji pretvaraju
-          "google.com" u IP adresu). Ako je konfiguracija loša, DNS upiti
-          mogu da "procure" direktno ka tvom ISP-u, mimo VPN tunela, čak i
-          dok ostatak saobraćaja izgleda bezbedno.
+          When you use a VPN, your DNS requests should normally be handled
+          through DNS resolvers intended by your VPN configuration.
+          A DNS leak can occur when DNS requests are instead sent to another
+          resolver, such as one operated by your internet service provider.
         </p>
+
         <p>
-          Ovaj test generiše niz jedinstvenih, nasumičnih poddomena i prati
-          koji DNS serveri odgovaraju na te upite. Ako među njima vidiš ime
-          svog kućnog internet provajdera umesto VPN provajdera, tvoj DNS
-          cura.
+          This test generates unique random DNS hostnames and monitors which
+          DNS resolvers contact our authoritative DNS server while resolving
+          them.
         </p>
+
+        <p>
+          The detected resolver IP addresses are then displayed together
+          with available network and location information so you can inspect
+          which DNS infrastructure your connection is using.
+        </p>
+
       </section>
+
     </main>
 
+
+    <!-- Footer -->
+
     <footer>
-      <p>Self-hosted DNS leak test</p>
+
+      <p>
+        Firewall Mindset DNS Leak Test
+      </p>
+
+      <nav
+        class="footer-links"
+        aria-label="Legal"
+      >
+
+        <a href="/privacy.html">
+          Privacy Policy
+        </a>
+
+        <a href="/terms.html">
+          Terms of Use
+        </a>
+
+      </nav>
+
     </footer>
+
   </div>
 
+
+  <!-- Privacy / Data Processing Notice -->
+
+  <dialog
+    id="privacy-dialog"
+    class="privacy-dialog"
+    aria-labelledby="privacy-title"
+  >
+
+    <div class="privacy-dialog-content">
+
+      <h2 id="privacy-title">
+        Privacy &amp; Data Processing
+      </h2>
+
+      <p>
+        This service processes limited technical information necessary
+        to perform the DNS leak test.
+      </p>
+
+      <p>
+        When you run a test, we may process information including DNS
+        resolver IP addresses, your connection IP address for security
+        and rate limiting purposes, DNS query information, and technical
+        request data.
+      </p>
+
+      <p>
+        DNS resolver IP addresses may be sent to a third-party IP
+        information service to obtain ISP, organization, and approximate
+        location information.
+      </p>
+
+      <p>
+        Test session data is temporary and is automatically removed after
+        a short period of time.
+      </p>
+
+      <p>
+        For more information about what data is processed, why it is
+        processed, retention periods, third-party services, and your
+        privacy rights, please read our
+        <a href="/privacy.html">Privacy Policy</a>.
+      </p>
+
+
+      <div class="privacy-dialog-actions">
+
+        <button
+          id="privacy-continue-btn"
+          class="btn-primary"
+          type="button"
+        >
+          Continue
+        </button>
+
+        <a
+          href="/privacy.html"
+          class="privacy-link"
+        >
+          Read Privacy Policy
+        </a>
+
+      </div>
+
+    </div>
+
+  </dialog>
+
+
   <script src="/js/app.js"></script>
+
 </body>
 </html>

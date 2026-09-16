@@ -1,115 +1,525 @@
 /**
  * dns-server.js
  *
- * Ovo NIJE obican web server - ovo je nas sopstveni, minijaturni DNS server.
- * Sluša na UDP portu 53 (standardni DNS port) i ponaša se kao "autoritativni"
- * server za nas poddomen (DNS_TEST_DOMAIN iz .env).
+ * Autoritativni DNS server za DNS leak test.
  *
- * KAKO STIZE DO OVDE (ceo lanac):
- * Browser -> OS DNS resolver -> (opciono VPN DNS) -> (opciono ISP DNS)
- *   -> ... -> Root DNS serveri -> TLD (.com) serveri
- *   -> NASA MASINA (jer smo NS delegacijom rekli "pitaj mene za dnstest.tvojdomen.com")
+ * Ovaj server:
+ *   - slusa UDP i TCP port 53
+ *   - odgovara samo za DNS_TEST_DOMAIN zonu
+ *   - NE radi DNS rekurziju
+ *   - belezi IP resolvera koji direktno kontaktira server
+ *   - prihvata samo hostname formata:
  *
- * Svaka "stanica" u tom lancu koja NIJE bas krajnji browser jeste DNS
- * RESOLVER - i bas IP adresu poslednjeg resolvera u lancu (onog koji je
- * direktno pitao NAS) mi ovde hvatamo. To je upravo ono sto nas zanima:
- * da li je taj resolver "cist" (npr. VPN-ov DNS server) ili je to zapravo
- * DNS server tvog ISP-a (sto znaci leak).
+ *       <probeId>.<testId>.<DNS_TEST_DOMAIN>
  *
- * Koristimo biblioteku 'dns2' koja nam stedi posao rucnog parsiranja
- * binarnog DNS protokola (RFC 1035) - ali logika koju pisemo iznad nje je
- * nasa.
+ * Primer:
+ *
+ *   7d8a...e21.91bc...a44.dnsleaktest.firewallmindset.site
+ *
+ * probeId i testId su 128-bitni ID-jevi generisani sa crypto.randomBytes(16),
+ * odnosno 32 hex karaktera.
  */
 
 require('dotenv').config();
+
+const net = require('net');
 const dns2 = require('dns2');
+
 const { Packet } = dns2;
+
 const sessionStore = require('./sessionStore');
 
-const DNS_TEST_DOMAIN = (process.env.DNS_TEST_DOMAIN || 'dnstest.example.com').toLowerCase();
-const DNS_PORT = parseInt(process.env.DNS_PORT || '53', 10);
-const DNS_ANSWER_IP = process.env.DNS_ANSWER_IP || '203.0.113.1';
+
+/* -------------------------------------------------------------------------- */
+/* Configuration                                                              */
+/* -------------------------------------------------------------------------- */
+
+const DNS_TEST_DOMAIN = (
+  process.env.DNS_TEST_DOMAIN ||
+  'dnstest.example.com'
+)
+  .toLowerCase()
+  .replace(/\.$/, '');
+
+
+const DNS_PORT = Number.parseInt(
+  process.env.DNS_PORT || '53',
+  10
+);
+
+
+const DNS_ANSWER_IP =
+  process.env.DNS_ANSWER_IP || '203.0.113.1';
+
+
+/* -------------------------------------------------------------------------- */
+/* Configuration validation                                                   */
+/* -------------------------------------------------------------------------- */
+
+if (
+  !Number.isInteger(DNS_PORT) ||
+  DNS_PORT < 1 ||
+  DNS_PORT > 65535
+) {
+  throw new Error('DNS_PORT mora biti validan TCP/UDP port.');
+}
+
+
+if (!net.isIPv4(DNS_ANSWER_IP)) {
+  throw new Error(
+    'DNS_ANSWER_IP mora biti validna IPv4 adresa.'
+  );
+}
+
+
+if (
+  !DNS_TEST_DOMAIN ||
+  DNS_TEST_DOMAIN.length > 253
+) {
+  throw new Error(
+    'DNS_TEST_DOMAIN nije validan DNS domen.'
+  );
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * generateId(16) daje:
+ *
+ * 16 bytes = 128 bits
+ * hex       = 32 karaktera
+ */
+const ID_REGEX = /^[a-f0-9]{32}$/;
+
+
+/* -------------------------------------------------------------------------- */
+/* Hostname parsing                                                           */
+/* -------------------------------------------------------------------------- */
 
 /**
- * Iz punog imena upita (npr. "a1b2c3.f29e7ab1.dnstest.tvojdomen.com")
- * izvlacimo testId. Format koji nas frontend generise je uvek:
+ * Proverava da li query pripada nasoj DNS zoni.
+ */
+function isInsideTestDomain(queryName) {
+  const name = normalizeName(queryName);
+
+  return (
+    name === DNS_TEST_DOMAIN ||
+    name.endsWith(`.${DNS_TEST_DOMAIN}`)
+  );
+}
+
+
+/**
+ * Uklanja trailing "." i pretvara hostname u lowercase.
+ */
+function normalizeName(queryName) {
+  if (typeof queryName !== 'string') {
+    return '';
+  }
+
+  return queryName
+    .toLowerCase()
+    .replace(/\.$/, '');
+}
+
+
+/**
+ * Ocekujemo TACNO:
  *
  *   <probeId>.<testId>.<DNS_TEST_DOMAIN>
  *
- * Zato: skinemo sufiks DNS_TEST_DOMAIN, ono sto ostane podelimo tackom -
- * prvi deo je probeId, drugi je testId.
+ * Ne prihvatamo:
+ *
+ *   foo.<probe>.<test>.<domain>
+ *   <test>.<domain>
+ *   random.<domain>
+ *
+ * @returns {{ probeId: string, testId: string } | null}
  */
-function extractTestId(queryName) {
-  const name = queryName.toLowerCase().replace(/\.$/, ''); // skini trailing tacku ako postoji
+function extractProbeInfo(queryName) {
+  const name = normalizeName(queryName);
 
-  if (!name.endsWith(DNS_TEST_DOMAIN)) {
-    return null; // upit koji ne pripada nasem test poddomenu - ignorisemo
+  const suffix = `.${DNS_TEST_DOMAIN}`;
+
+  if (!name.endsWith(suffix)) {
+    return null;
   }
 
-  const prefix = name.slice(0, name.length - DNS_TEST_DOMAIN.length).replace(/\.$/, '');
+  const prefix = name.slice(
+    0,
+    name.length - suffix.length
+  );
+
   const parts = prefix.split('.');
 
-  if (parts.length < 2) return null; // ocekujemo bar probeId.testId
+  /*
+   * Mora biti TACNO:
+   *
+   * probeId.testId
+   */
+  if (parts.length !== 2) {
+    return null;
+  }
 
-  const testId = parts[parts.length - 1];
-  return testId;
+  const [probeId, testId] = parts;
+
+  /*
+   * Oba ID-ja moraju biti 128-bitni hex stringovi.
+   */
+  if (
+    !ID_REGEX.test(probeId) ||
+    !ID_REGEX.test(testId)
+  ) {
+    return null;
+  }
+
+  return {
+    probeId,
+    testId,
+  };
 }
 
+
+/* -------------------------------------------------------------------------- */
+/* DNS server                                                                 */
+/* -------------------------------------------------------------------------- */
+
 const server = dns2.createServer({
+
+  /*
+   * DNS mora da podrzava oba transporta.
+   */
   udp: true,
+  tcp: true,
+
+
   handle: (request, send, rinfo) => {
-    // rinfo.address = IP adresa masine koja nam je DIREKTNO poslala ovaj
-    // UDP paket. To je nas "zadnji resolver u lancu" - upravo ono sto
-    // zelimo da uhvatimo i pokazemo korisniku.
-    const response = Packet.createResponseFromRequest(request);
-    const [question] = request.questions;
 
-    if (question) {
-      const testId = extractTestId(question.name);
+    /*
+     * dns2 je uspeo da parsira paket, ali je tokom parsiranja
+     * pronasao problem.
+     *
+     * Vracamo minimalni FORMERR odgovor.
+     */
+    if (request.errors?.length) {
+      const response =
+        Packet.createResponseFromRequest(request);
 
-      if (testId) {
-        const recorded = sessionStore.recordResolverHit(testId, rinfo.address);
-        if (recorded) {
-          console.log(`[DNS] test=${testId} resolver=${rinfo.address} query=${question.name}`);
-        }
-      }
+      response.header.rcode =
+        Packet.RCODE.FORMERR;
 
-      // Bez obzira da li prepoznajemo testId, MORAMO da odgovorimo necim -
-      // inace ce resolver koji nas pita da ceka na timeout, sto usporava
-      // ceo test i moze da izgleda kao da je "test zapeo".
-      //
-      // Vracamo namerno besmislenu (TEST-NET-3, RFC 5737) IP adresu sa
-      // ttl=1 - klijentu ne treba prava IP adresa, samo nam treba da je
-      // DNS upit stigao do nas. ttl=1 sprecava keširanje ovog odgovora.
-      response.answers.push({
-        name: question.name,
-        type: Packet.TYPE.A,
-        class: Packet.CLASS.IN,
-        ttl: 1,
-        address: DNS_ANSWER_IP,
-      });
+      response.header.ra = 0;
+
+      return send(response);
     }
 
-    send(response);
+
+    /*
+     * Nas servis ocekuje tacno jedno DNS pitanje.
+     *
+     * Ovo dodatno pojednostavljuje server i sprecava neobicne
+     * multi-question pakete.
+     */
+    if (
+      !Array.isArray(request.questions) ||
+      request.questions.length !== 1
+    ) {
+      const response =
+        Packet.createResponseFromRequest(request);
+
+      response.header.rcode =
+        Packet.RCODE.FORMERR;
+
+      response.header.ra = 0;
+
+      return send(response);
+    }
+
+
+    const question = request.questions[0];
+
+    const response =
+      Packet.createResponseFromRequest(request);
+
+
+    /*
+     * Ovaj server NIKADA ne radi rekurziju.
+     *
+     * RA = Recursion Available
+     *
+     * 0 znaci:
+     *
+     * "Nemoj od mene traziti da resolve-ujem druge domene."
+     */
+    response.header.ra = 0;
+
+
+    const queryName =
+      normalizeName(question.name);
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Query van nase zone                                                    */
+    /* ---------------------------------------------------------------------- */
+
+    /*
+     * Primer:
+     *
+     *   google.com
+     *   example.org
+     *
+     * Mi nismo autoritativni za njih i ne pokusavamo da ih resolve-ujemo.
+     */
+    if (!isInsideTestDomain(queryName)) {
+
+      response.header.aa = 0;
+
+      response.header.rcode =
+        Packet.RCODE.REFUSED;
+
+      return send(response);
+    }
+
+
+    /*
+     * Od ovog trenutka znamo da je query unutar nase zone.
+     */
+    response.header.aa = 1;
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Validacija klase                                                       */
+    /* ---------------------------------------------------------------------- */
+
+    /*
+     * Nas servis radi samo sa Internet klasom (IN).
+     */
+    if (question.class !== Packet.CLASS.IN) {
+
+      response.header.rcode =
+        Packet.RCODE.REFUSED;
+
+      return send(response);
+    }
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Validacija probe hostname-a                                            */
+    /* ---------------------------------------------------------------------- */
+
+    const probe =
+      extractProbeInfo(queryName);
+
+
+    /*
+     * Query pripada nasoj zoni ali hostname nije validna probe adresa.
+     *
+     * Primer:
+     *
+     *   random.dnsleaktest.firewallmindset.site
+     *
+     * Za nas takvo ime ne postoji.
+     */
+    if (!probe) {
+
+      response.header.rcode =
+        Packet.RCODE.NXDOMAIN;
+
+      return send(response);
+    }
+
+
+    const { testId } = probe;
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Provera sesije                                                         */
+    /* ---------------------------------------------------------------------- */
+
+    /*
+     * Ne odgovaramo A zapisom ako testId vise ne postoji.
+     *
+     * Ovo sprecava da stari/random probe domeni zauvek budu validni.
+     */
+    if (!sessionStore.sessionExists(testId)) {
+
+      response.header.rcode =
+        Packet.RCODE.NXDOMAIN;
+
+      return send(response);
+    }
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Belezenje resolvera                                                    */
+    /* ---------------------------------------------------------------------- */
+
+    /*
+     * rinfo.address je IP masine koja je DIREKTNO kontaktirala
+     * nas autoritativni DNS server.
+     *
+     * Najcesce je to recursive DNS resolver:
+     *
+     *   Cloudflare
+     *   Google
+     *   ISP DNS
+     *   VPN DNS
+     *   itd.
+     */
+    if (
+      rinfo &&
+      typeof rinfo.address === 'string'
+    ) {
+      sessionStore.recordResolverHit(
+        testId,
+        rinfo.address
+      );
+    }
+
+
+    /*
+     * NAMERNO nema console.log() za svaki DNS query.
+     *
+     * Javni UDP servis moze dobiti veliki broj paketa.
+     * Logovanje svakog paketa bi omogucilo napadacu da puni:
+     *
+     *   journald
+     *   disk
+     *   stdout
+     *
+     * i nepotrebno trosi CPU.
+     */
+
+
+    /* ---------------------------------------------------------------------- */
+    /* A query                                                                */
+    /* ---------------------------------------------------------------------- */
+
+    if (question.type === Packet.TYPE.A) {
+
+      response.answers.push({
+        name: question.name,
+
+        type: Packet.TYPE.A,
+
+        class: Packet.CLASS.IN,
+
+        /*
+         * Vrlo kratak TTL jer svaka probe koristi jedinstveni hostname.
+         */
+        ttl: 1,
+
+        address: DNS_ANSWER_IP,
+      });
+
+      return send(response);
+    }
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Ostali record tipovi                                                   */
+    /* ---------------------------------------------------------------------- */
+
+    /*
+     * Na primer:
+     *
+     *   AAAA
+     *   TXT
+     *   MX
+     *   ANY
+     *
+     * Hostname postoji, ali mi nemamo record tog tipa.
+     *
+     * Zato vracamo:
+     *
+     *   NOERROR
+     *   0 answers
+     *
+     * umesto da izmisljamo A record.
+     *
+     * Resolver hit smo ipak zabelezili jer je sam DNS upit validan
+     * signal za leak test.
+     */
+
+    return send(response);
   },
 });
 
+
+/* -------------------------------------------------------------------------- */
+/* Server events                                                              */
+/* -------------------------------------------------------------------------- */
+
 server.on('listening', () => {
-  console.log(`[DNS] Server slusa na UDP portu ${DNS_PORT}, domen: *.${DNS_TEST_DOMAIN}`);
+  console.log(
+    `[DNS] Authoritative DNS server aktivan: *.${DNS_TEST_DOMAIN} port=${DNS_PORT}`
+  );
 });
+
+
+/*
+ * Paket nije mogao ni da bude normalno dekodiran.
+ *
+ * Ovde ne logujemo raw paket ili korisnicki input.
+ */
+server.on('requestError', (err) => {
+  console.warn(
+    `[DNS] Nevalidan DNS paket: ${err.message}`
+  );
+});
+
 
 server.on('error', (err) => {
-  console.error('[DNS] Greska:', err);
+  console.error(
+    '[DNS] Server greska:',
+    err
+  );
 });
 
+
+/* -------------------------------------------------------------------------- */
+/* Start                                                                      */
+/* -------------------------------------------------------------------------- */
+
 function startDnsServer() {
+
   server.listen({
+
     udp: {
       port: DNS_PORT,
       address: '0.0.0.0',
-      type: 'udp4',
     },
+
+    tcp: {
+      port: DNS_PORT,
+      address: '0.0.0.0',
+    },
+
   });
 }
 
-module.exports = { startDnsServer };
+/* -------------------------------------------------------------------------- */
+/* Stop                                                                   */
+/* -------------------------------------------------------------------------- */
+
+
+function stopDnsServer() {
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+module.exports = {
+  startDnsServer,
+  stopDnsServer,
+};

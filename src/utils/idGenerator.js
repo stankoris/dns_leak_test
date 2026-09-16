@@ -5,17 +5,15 @@ const crypto = require('crypto');
  *  - testId (identifikuje jednu test sesiju)
  *  - probeId (identifikuje jedan pojedinacni "leak" zahtev unutar sesije)
  *
- * Zasto MORA da bude nasumicno i jedinstveno svaki put?
- * DNS resolveri (i browser, i OS, i sam ISP) agresivno kesiraju odgovore.
- * Ako bismo koristili isto ime dva puta, drugi put bi odgovor mogao doci iz
- * kesa negde usput, umesto da stvarno otputuje sve do naseg servera - a to bi
- * nam pokvarilo test (izgledalo bi kao da nema leaka, iako ga ima, samo je
- * odgovor bio kesiran).
+ * Svaki ID mora biti jedinstven jer DNS resolveri, browser i OS mogu
+ * kesirati DNS odgovore. Novi hostname forsira novi DNS lookup.
  *
- * crypto.randomBytes je bezbedniji izvor nasumicnosti od Math.random() -
- * bitno je da testId ne moze niko da pogodi/predvidi.
+ * crypto.randomBytes() koristi kriptografski bezbedan izvor nasumicnosti,
+ * za razliku od Math.random().
+ *
+ * 16 bajtova = 128 bita entropije.
  */
-function generateId(byteLength = 6) {
+function generateId(byteLength = 16) {
   return crypto.randomBytes(byteLength).toString('hex');
 }
 
