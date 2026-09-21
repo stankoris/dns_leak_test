@@ -508,14 +508,10 @@ const server = dns2.createServer({
 
         response.answers.push({
           name: DNS_TEST_DOMAIN,
-
           type: Packet.TYPE.NS,
-
           class: Packet.CLASS.IN,
-
           ttl: 300,
-
-          data: DNS_NAMESERVER,
+          ns: DNS_NAMESERVER,
         });
 
 
