@@ -34,6 +34,18 @@ const sessionStore = require('./sessionStore');
 /* Configuration                                                              */
 /* -------------------------------------------------------------------------- */
 
+const DNS_NAMESERVER = 'ns1.firewallmindset.site';
+
+const SOA = {
+  primary: DNS_NAMESERVER,
+  admin: 'hostmaster.firewallmindset.site',
+  serial: 2026092101,
+  refresh: 3600,
+  retry: 600,
+  expiration: 604800,
+  minimum: 60,
+};
+
 const DNS_TEST_DOMAIN = (
   process.env.DNS_TEST_DOMAIN ||
   'dnstest.example.com'
@@ -305,6 +317,53 @@ const server = dns2.createServer({
       return send(response);
     }
 
+    
+ /*
+ * Apex zone records:
+ *
+ * dnsleaktest.firewallmindset.site NS
+ * dnsleaktest.firewallmindset.site SOA
+ */
+if (queryName === DNS_TEST_DOMAIN) {
+
+  if (question.type === Packet.TYPE.NS) {
+    response.answers.push({
+      name: DNS_TEST_DOMAIN,
+      type: Packet.TYPE.NS,
+      class: Packet.CLASS.IN,
+      ttl: 300,
+      data: DNS_NAMESERVER,
+    });
+
+    return send(response);
+  }
+
+
+  if (question.type === Packet.TYPE.SOA) {
+    response.answers.push({
+      name: DNS_TEST_DOMAIN,
+      type: Packet.TYPE.SOA,
+      class: Packet.CLASS.IN,
+      ttl: 300,
+
+      primary: SOA.primary,
+      admin: SOA.admin,
+      serial: SOA.serial,
+      refresh: SOA.refresh,
+      retry: SOA.retry,
+      expiration: SOA.expiration,
+      minimum: SOA.minimum,
+    });
+
+    return send(response);
+  }
+
+
+  /*
+   * Zona postoji, ali nema record trazenog tipa.
+   */
+  return send(response);
+}
 
     /* ---------------------------------------------------------------------- */
     /* Validacija probe hostname-a                                            */
