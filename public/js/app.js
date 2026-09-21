@@ -160,37 +160,58 @@ async function fetchWithTimeout(
  *
  * Zato probe koristimo preko HTTPS-a.
  */
-/**
- * Pokrece DNS lookup za jedinstveni probe hostname.
- *
- * Koristimo <link rel="dns-prefetch"> jer nam nije potreban pravi
- * HTTP/HTTPS zahtev — potreban nam je samo DNS lookup.
- *
- * Browser pokusava da resolve-uje hostname, sto dovodi do toga da
- * korisnikov DNS resolver kontaktira nas autoritativni DNS server.
- *
- * Na taj nacin izbegavamo:
- *
- *   - TLS certificate mismatch
- *   - HTTPS konekciju ka probe hostname-u
- *   - CORS probleme
- *
- * Probe hostname je svaki put jedinstven kako DNS cache ne bi
- * uticao na rezultat testa.
- */
 function sendProbe(hostname) {
   return new Promise((resolve) => {
-    const link = document.createElement('link');
+    const img = new Image();
 
-    link.rel = 'dns-prefetch';
-    link.href = `//${hostname}`;
+    let finished = false;
 
-    document.head.appendChild(link);
 
-    setTimeout(() => {
-      link.remove();
+    const finish = () => {
+      if (finished) {
+        return;
+      }
+
+      finished = true;
+
+      clearTimeout(timeout);
+
+      img.onload = null;
+      img.onerror = null;
+
       resolve();
-    }, 1000);
+    };
+
+
+    img.onload = finish;
+
+    /*
+     * Error je ovde potpuno normalan.
+     *
+     * Nama slika nije potrebna.
+     * Potreban nam je DNS lookup koji joj prethodi.
+     */
+    img.onerror = finish;
+
+
+    /*
+     * Dodatni cache-buster.
+     *
+     * Sam hostname je vec nasumican, tako da ovo nije striktno
+     * neophodno, ali dodatno onemogucava HTTP cache.
+     */
+    img.src =
+      `https://${hostname}/probe.png?t=${Date.now()}`;
+
+
+    /*
+     * Ako browser iz bilo kog razloga ne prijavi load/error,
+     * nastavljamo posle 4 sekunde.
+     */
+    const timeout = setTimeout(
+      finish,
+      4000
+    );
   });
 }
 
